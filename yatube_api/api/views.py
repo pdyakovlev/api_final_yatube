@@ -1,8 +1,7 @@
 from django.shortcuts import get_object_or_404
 from posts.models import Group, Post
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.permissions import (
-    IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from .permission import IsOwnerOrReadOnly
@@ -13,10 +12,7 @@ from .serializers import (
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly]
-    # Если использую пермишен IsAuthenticated то тесты фейлятся
-    # с AssertionError: Проверьте, что GET-запрос неавторизованного
-    # пользователя к `/api/v1/posts/` возвращает ответ со статусом 200.
+    permission_classes = [IsOwnerOrReadOnly]
     filterset_fields = ['group']
     pagination_class = LimitOffsetPagination
 
@@ -26,7 +22,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
         post_id = self.kwargs.get('post_id')
@@ -49,7 +45,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [AllowAny]
 
     def create(self, request):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

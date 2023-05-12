@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from posts.models import Group, Post, User
+from posts.models import Group, Post
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly)
@@ -13,7 +13,10 @@ from .serializers import (
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly]
+    # Если использую пермишен IsAuthenticated то тесты фейлятся
+    # с AssertionError: Проверьте, что GET-запрос неавторизованного
+    # пользователя к `/api/v1/posts/` возвращает ответ со статусом 200.
     filterset_fields = ['group']
     pagination_class = LimitOffsetPagination
 
@@ -43,7 +46,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         return post.comments.all()
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [IsOwnerOrReadOnly]
@@ -60,8 +63,7 @@ class FollowViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'following__username']
 
     def get_queryset(self):
-        user = get_object_or_404(User, username=self.request.user.username)
-        return user.follower
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
